@@ -1,0 +1,45 @@
+cabal-version:      3.0
+name:               diwordle
+version:            0.1.0.0
+synopsis:            Un juego tipo Wordle en Haskell
+license:            MIT
+license-file:       LICENSE
+author:             Olivier Saint Nom
+maintainer:         oltie4002@gmail.com
+category:            Juegos
+build-type:         Simple
+-- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
+extra-doc-files:    CHANGELOG.md
+
+library
+  exposed-modules:     
+            Lib,
+            Core,
+            Game
+  build-depends:       base >=4.7 && <5,
+                       tinyapp
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+
+common warnings
+    ghc-options: -Wall
+
+
+executable diwordle
+  main-is:             Main.hs
+  build-depends:       base >=4.7 && <5,
+                       diwordle
+  hs-source-dirs:      app
+  ghc-options:        -threaded
+  default-language:    Haskell2010
+
+test-suite diwordle-test
+  type: exitcode-stdio-1.0
+  hs-source-dirs: test
+  main-is: Spec.hs
+  build-depends:
+      base >=4.7 && <5,
+      diwordle,
+      hspec
+  default-language: Haskell2010
