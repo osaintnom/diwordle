@@ -1,6 +1,10 @@
 module Main where
 
-import CLI qualified
+import Core (Match(..), match)
 
 main :: IO ()
-main = CLI.main
+main = do
+  let resultado = match "posta" "savia"
+  print resultado
+
+

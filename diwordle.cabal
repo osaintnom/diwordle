@@ -1,50 +1,49 @@
--- diwordle.cabal
-cabal-version:       3.0
-name:                diwordle
-version:             0.1.0.0
-synopsis:            Un juego tipo Wordle en Haskell
-description:         Una implementación del popular juego Wordle usando Haskell y Cabal.
-license:             MIT
-license-file:        LICENSE
-author:              Tu Nombre
-maintainer:          tu.email@ejemplo.com
-category:            Juegos
-build-type:          Simple
+cabal-version:        3.0
+name:                 diwordle
+version:              0.1.0.0
+synopsis:             Un juego tipo Wordle en Haskell
+description:          Una implementación del popular juego Wordle usando Haskell y Cabal.
+license:              MIT
+license-file:         LICENSE
+author:               Olivier Saint-Nom
+maintainer:           oltie4002@gmail.com
+category:             Juegos
+build-type:           Simple
+
+common warnings
+  ghc-options: -Wall
 
 library
-  exposed-modules:     
-        CLI, 
-        Core, 
-        Game
-  
-  hs-source-dirs:      src
-  build-depends:       base >=4.7 && <5,
-                       containers,
-                       tinyapp ^>=0.2.1.0,
-                       unordered-containers
-  default-language:    Haskell2010
+  import:               warnings
+  exposed-modules:      
+                        Core,
+                        Game,
+                        CLI
+  hs-source-dirs:       src
+  build-depends:    
+                        base ^>=4.17.2.1,
+                        aeson ^>= 2.2.3,
+                        tinyapp ^>=0.2.1.0,
+                        containers,
+                        unordered-containers
+  default-language:     Haskell2010
 
 executable diwordle
-  main-is:             Main.hs
-  hs-source-dirs:      app
-  build-depends:       base >=4.7 && <5,
-                       diwordle,
-                       brick >=0.66.1,
-                       vty >=5.34.0
-  ghc-options:        -threaded
-  default-language:    Haskell2010
+  import:               warnings
+  main-is:              Main.hs
+  hs-source-dirs:       app
+  build-depends:        base ^>=4.17.2.1,
+                        diwordle,
+                        brick >=0.66.1,
+                        vty >=5.34.0
+  ghc-options:          -threaded
+  default-language:     Haskell2010
 
 test-suite diwordle-test
-  type:                exitcode-stdio-1.0
-  main-is:             Spec.hs
-  hs-source-dirs:      test
-  build-depends:       base >=4.7 && <5,
-                       diwordle,
-                       hspec,
-                       hspec-expectations,
-                       hspec-core,
-                       HUnit,
-                       quickcheck-io,
-                       hspec-expectations >=0.8.4,
-                       brick
-  default-language:    Haskell2010
+  import:               warnings
+  type:                 exitcode-stdio-1.0
+  main-is:              Spec.hs
+  hs-source-dirs:       test
+  build-depends:        base ^>=4.17.2.1,
+                        diwordle
+  default-language:     Haskell2010
