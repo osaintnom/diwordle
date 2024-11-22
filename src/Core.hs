@@ -1,5 +1,4 @@
 module Core (Match(..), match) where
-import TinyApp.Interactive
 
 data Match = Correcto | LugarIncorrecto | NoPertenece
   deriving (Eq, Show)
@@ -20,6 +19,7 @@ checkSiEsta objetivo (int:intento)
 -- Marca las letras correctas (en la posición correcta)
 checkSiEsCorrecto :: String -> [(Char, Match)] -> [(Char, Match)]
 checkSiEsCorrecto _ [] = []
+checkSiEsCorrecto "" _ = []
 checkSiEsCorrecto (obj:objetivo) ((c, m):xs) = 
   if c == obj
     then (c, Correcto) : checkSiEsCorrecto objetivo xs
@@ -28,13 +28,15 @@ checkSiEsCorrecto (obj:objetivo) ((c, m):xs) =
 -- Ajusta las marcas, cambiando LugarIncorrecto a NoPertenece si es necesario
 checkDuplicados :: String -> String -> [(Char, Match)] -> [(Char, Match)] -> [(Char, Match)]
 checkDuplicados _ _ _ [] = []
-checkDuplicados objetivo intento originalList ((c, m):xs) =
-  let countLugarInc = countLugarIncorrectoCorrecto c originalList
+checkDuplicados objetivo intento originalList lista =
+  let (c, m) = last lista
+      xs = init lista
+      countLugarInc = countLugarIncorrectoCorrecto c originalList
       countInTarget = countChar c objetivo
-      headless_originalList = tail originalList
+      headless_originalList = init originalList
   in if m == LugarIncorrecto && countLugarInc > countInTarget
-     then (c, NoPertenece) : checkDuplicados objetivo intento headless_originalList xs
-     else (c, m) : checkDuplicados objetivo intento originalList xs
+     then  checkDuplicados objetivo intento headless_originalList xs ++ [(c, NoPertenece)]
+     else  checkDuplicados objetivo intento originalList xs ++ [(c, m)]
 
 -- Cuenta cuántas veces aparece un carácter en un string
 countChar :: Char -> String -> Int
@@ -49,6 +51,6 @@ countLugarIncorrectoCorrecto c ((char, m):xs) =
     else countLugarIncorrectoCorrecto c xs
 
 
--- [(s,LugarIncorrecto),(a,LugarIncorrecto),(v,NoPertenece),(i,NoPertenece),(a,Correcto)]
--- Deberia ser
--- [(s,LugarIncorrecto),(a,NoPertenece),(v,NoPertenece),(i,NoPertenece),(a,Correcto)]
+
+-- >>> match "posta" "sssss" 
+-- [('s',NoPertenece),('s',NoPertenece),('s',Correcto),('s',NoPertenece),('s',NoPertenece)]

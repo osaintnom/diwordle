@@ -1,76 +1,90 @@
 -- src/Game.hs
-module Game (
-    GameState,
-    initializeGame,
-    submitAttempt,
-    getAttempts,
-    isGameOver,
-    didWin,
-    secretWordLength,
-    remainingAttempts,
-    totalAttempts
-) where
+{-# LANGUAGE OverloadedRecordDot #-}
 
-import Core (Match(..), match)
-import Data.Char (toUpper)
+module Game
+  ( Juego,
+    EstadoJuego,
+    iniciarJuego, -- HECHO
+    enviarIntento, -- HECHO
+    obtenerIntentos,
+    juegoFinalizado, -- HECHO
+    ganoJuego, -- HECHO
+    largoPalabraSecreta, -- HECHO
+    intentosTotales, -- HECHO
+  )
+where
 
-data GameState = GameState {
-    secretWord     :: String,                   -- La palabra secreta a adivinar
-    maxAttempts    :: Int,                      -- Número máximo de intentos permitidos
-    attemptsMade   :: [(String, [(Char, Match)])],  -- Lista de intentos realizados y sus matches
-    gameOver       :: Bool,                     -- Indica si el juego ha terminado
-    won            :: Bool                      -- Indica si el juego se ha ganado
-} deriving (Show)
+import Core (Match (..), match)
 
--- Inicializar el juego con la palabra secreta y el número de intentos
-initializeGame :: String -> Int -> GameState
-initializeGame word maxAtts = GameState {
-    secretWord = map toUpper word,
-    maxAttempts = maxAtts,
-    attemptsMade = [],
-    gameOver = False,
-    won = False
-}
+data EstadoJuego = Gano | Perdio | EnProceso
+  deriving (Show, Eq)
 
--- Enviar un intento al juego
-submitAttempt :: GameState -> String -> Either String GameState
-submitAttempt state attempt
-  | gameOver state = Left "El juego ha terminado."
-  | length attempt /= length (secretWord state) = Left "Longitud de intento inválida."
-  | not (all (`elem` ['A'..'Z']) intentoUpper) = Left "Caracteres inválidos en el intento."
-  | otherwise =
-      let matches = match (secretWord state) intentoUpper
-          newAttempts = attemptsMade state ++ [(intentoUpper, matches)]
-          wonGame = all ((== Correcto) . snd) matches
-          gameEnded = wonGame || length newAttempts >= maxAttempts state
-          newState = state {
-            attemptsMade = newAttempts,
-            gameOver = gameEnded,
-            won = wonGame
-          }
-      in Right newState
+data ResultadoIntento = Valido | LargoInvalido | PalabraInvalida | IntentoYaRealizado
+  deriving (Show, Eq)
+
+data Juego = Juego
+  { target :: String, -- La palabra secreta a adivinar
+    maxIntentos :: Int, -- Número máximo de intentos permitidos
+    intentos :: [(String, [(Char, Match)])], -- Lista de intentos realizados y sus matches
+    estado :: EstadoJuego -- Indica el estado del juego
+  }
+  deriving (Show)
+
+iniciarJuego :: String -> Int -> Juego
+iniciarJuego secret maxInt =
+  Juego
+    { target = secret,
+      maxIntentos = maxInt,
+      intentos = [],
+      estado = EnProceso
+    }
+
+-- | Toma un juego y un intento
+--    -> Devuelve Error o Juego (actualizado)
+enviarIntento :: Juego -> String -> (ResultadoIntento, Juego)
+enviarIntento juego intento
+  | not (esLargoValido juego intento) = (LargoInvalido, juego)
+  | not (esPalabraValida intento) = (PalabraInvalida, juego)
+  | intentoYaRealizado juego intento = (IntentoYaRealizado, juego)
+  | otherwise = (Valido, juegoActualizado)
   where
-    intentoUpper = map toUpper attempt
+    conIntentos = juego {intentos = juego.intentos ++ [(intento, match juego.target intento)]}
+    juegoActualizado = estadoJuego conIntentos
 
--- Obtener todos los intentos realizados junto con sus matches
-getAttempts :: GameState -> [(String, [(Char, Match)])]
-getAttempts = attemptsMade
--- Verificar si el juego ha terminado
-isGameOver :: GameState -> Bool
-isGameOver = gameOver
+-- Ver si intento esta en corpus?
+esLargoValido :: Juego -> String -> Bool
+esLargoValido juego intento
+  | length intento /= largoPalabraSecreta juego = False
+  | otherwise = True
 
--- Verificar si el juego ha sido ganado
-didWin :: GameState -> Bool
-didWin = won
+esPalabraValida :: String -> Bool
+esPalabraValida intento
+    | not (all (`elem` ['a' .. 'z']) intento) = False
+    | otherwise = True
 
--- Obtener la longitud de la palabra secreta
-secretWordLength :: GameState -> Int
-secretWordLength = length . secretWord
+intentoYaRealizado :: Juego -> String -> Bool
+intentoYaRealizado juego intento = any (\x -> fst x == intento) juego.intentos
 
--- Obtener la cantidad de intentos restantes
-remainingAttempts :: GameState -> Int
-remainingAttempts state = maxAttempts state - length (attemptsMade state)
+largoPalabraSecreta :: Juego -> Int
+largoPalabraSecreta juego = length juego.target
 
--- Obtener el total de intentos permitidos
-totalAttempts :: GameState -> Int
-totalAttempts = maxAttempts
+estadoJuego :: Juego -> Juego
+estadoJuego juego
+  | ganoJuego juego = juego {estado = Gano}
+  | length juego.intentos < juego.maxIntentos = juego {estado = EnProceso}
+  | otherwise = juego {estado = Perdio}
+
+ganoJuego :: Juego -> Bool
+ganoJuego juego =
+  let ultimoIntento = last juego.intentos  --- (String, [(Char, Match)])
+   in all (\(_, m) -> m == Correcto) (snd ultimoIntento)
+
+juegoFinalizado :: Juego -> Bool
+juegoFinalizado juego = juego.estado /= EnProceso
+
+intentosTotales :: Juego -> Int
+intentosTotales juego = length juego.intentos
+
+obtenerIntentos :: Juego -> [(String, [(Char, Match)])]
+obtenerIntentos juego = juego.intentos
+
