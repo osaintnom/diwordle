@@ -1,7 +1,6 @@
--- app/Main.hs
 module Main where
 
-import Core (runCore)
+import CLI qualified
 
 main :: IO ()
-main = runCore
+main = CLI.main

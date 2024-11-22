@@ -1,45 +1,50 @@
-cabal-version:      3.0
-name:               diwordle
-version:            0.1.0.0
+-- diwordle.cabal
+cabal-version:       3.0
+name:                diwordle
+version:             0.1.0.0
 synopsis:            Un juego tipo Wordle en Haskell
-license:            MIT
-license-file:       LICENSE
-author:             Olivier Saint Nom
-maintainer:         oltie4002@gmail.com
+description:         Una implementación del popular juego Wordle usando Haskell y Cabal.
+license:             MIT
+license-file:        LICENSE
+author:              Tu Nombre
+maintainer:          tu.email@ejemplo.com
 category:            Juegos
-build-type:         Simple
--- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
-extra-doc-files:    CHANGELOG.md
+build-type:          Simple
 
 library
   exposed-modules:     
-            Lib,
-            Core,
-            Game
-  build-depends:       base >=4.7 && <5,
-                       tinyapp
+        CLI, 
+        Core, 
+        Game
+  
   hs-source-dirs:      src
+  build-depends:       base >=4.7 && <5,
+                       containers,
+                       tinyapp ^>=0.2.1.0,
+                       unordered-containers
   default-language:    Haskell2010
-
-
-common warnings
-    ghc-options: -Wall
-
 
 executable diwordle
   main-is:             Main.hs
-  build-depends:       base >=4.7 && <5,
-                       diwordle
   hs-source-dirs:      app
+  build-depends:       base >=4.7 && <5,
+                       diwordle,
+                       brick >=0.66.1,
+                       vty >=5.34.0
   ghc-options:        -threaded
   default-language:    Haskell2010
 
 test-suite diwordle-test
-  type: exitcode-stdio-1.0
-  hs-source-dirs: test
-  main-is: Spec.hs
-  build-depends:
-      base >=4.7 && <5,
-      diwordle,
-      hspec
-  default-language: Haskell2010
+  type:                exitcode-stdio-1.0
+  main-is:             Spec.hs
+  hs-source-dirs:      test
+  build-depends:       base >=4.7 && <5,
+                       diwordle,
+                       hspec,
+                       hspec-expectations,
+                       hspec-core,
+                       HUnit,
+                       quickcheck-io,
+                       hspec-expectations >=0.8.4,
+                       brick
+  default-language:    Haskell2010

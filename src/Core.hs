@@ -1,9 +1,23 @@
 -- src/Core.hs
-module Core (
-    runCore
-) where
+module Core (Match(..), match) where
 
-import Game (getGameMessage)
+import TinyApp.Interactive
+import Data.Char (toUpper)
+import Data.List (group, sort)
 
-runCore :: IO ()
-runCore = putStrLn (getGameMessage)
+data Match = Correcto | LugarIncorrecto | NoPertenece
+  deriving (Eq, Show)
+
+
+
+match :: String -> String -> [(Char, Match)]
+match "" "" = []
+match objetivo intento = zip intento (map matchChar intento)
+  where
+    matchChar c
+      | c `elem` objetivo = if c `elem` intento then Correcto else LugarIncorrecto
+      | otherwise = NoPertenece
+
+
+
+-- >>> match "posta" "seria"
