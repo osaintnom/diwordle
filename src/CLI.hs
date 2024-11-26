@@ -8,6 +8,7 @@ import TinyApp.Interactive (runInteractive', Sandbox(..), Key(..), ContinueExit(
 import Data.Char (toUpper)
 import GHC.Generics (Generic)
 import System.IO.Error(catchIOError)
+import System.Random.Stateful
 
 data Diccionario = Diccionario {
     palabras :: [String]
@@ -28,23 +29,24 @@ main = do
       putStrLn "Error al cargar el archivo"
     else do
       let diccionario = Diccionario {palabras = lines archivo}
-      let estadoInicial = cargarArchivo diccionario
+      estadoInicial <- cargarArchivo diccionario
       s <- runInteractive' (wordle estadoInicial)
       case mensajeFinal s of
           Just mensaje -> putStrLn mensaje
           Nothing -> putStrLn "Gracias por jugar!"
-        
 
 {- Leer archivo e iniciar juego con palabra random -}
-cargarArchivo :: Diccionario -> State
-cargarArchivo diccionario = 
-    let palabra = obtenerPalabraRandom diccionario
-        nuevoJuego = iniciarJuego palabra 5
-    in State nuevoJuego "" Nothing Nothing
+cargarArchivo :: Diccionario -> IO State
+cargarArchivo diccionario = do
+    palabra <- obtenerPalabraRandom diccionario
+    let nuevoJuego = iniciarJuego palabra 5
+    return $ State nuevoJuego "" Nothing Nothing
 
 {- Obtiene una palabra random del diccionario -}
-obtenerPalabraRandom :: Diccionario -> String
-obtenerPalabraRandom diccionario = head (palabras diccionario)
+obtenerPalabraRandom :: Diccionario -> IO String
+obtenerPalabraRandom (Diccionario lista) = do
+    indice <- randomRIO (0, length lista - 1)
+    return (lista !! indice)
 
 -- palabraEnDiccionario :: Diccionario -> String -> Bool
 
