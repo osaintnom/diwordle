@@ -17,6 +17,7 @@ data State = State {
 
 main :: IO ()
 main = do
+    putStrLn "Ingrese la palabra secreta:"
     palabra <- getLine
     let palabraMayuscula = map toUpper palabra
     let nuevoJuego = iniciarJuego palabraMayuscula 5
