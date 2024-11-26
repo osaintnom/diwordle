@@ -10,7 +10,8 @@ module Game
     juegoFinalizado, -- HECHO
     ganoJuego, -- HECHO
     largoPalabraSecreta, -- HECHO
-    intentosTotales, -- HECHO
+    intentosRestantes, -- HECHO
+    ResultadoIntento (..),
   )
 where
 
@@ -82,8 +83,8 @@ ganoJuego juego =
 juegoFinalizado :: Juego -> Bool
 juegoFinalizado juego = juego.estado /= EnProceso
 
-intentosTotales :: Juego -> Int
-intentosTotales juego = length juego.intentos
+intentosRestantes :: Juego -> Int
+intentosRestantes juego = juego.maxIntentos - length juego.intentos
 
 obtenerIntentos :: Juego -> [(String, [(Char, Match)])]
 obtenerIntentos juego = juego.intentos
