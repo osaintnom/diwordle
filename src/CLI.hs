@@ -1,10 +1,17 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# LANGUAGE DeriveGeneric #-}
 module CLI(main) where
 
 import Game
 import Core (Match(..))
-import TinyApp.Interactive
+import TinyApp.Interactive (runInteractive', Sandbox(..), Key(..), ContinueExit(..), Event (Key))
 import Data.Char (toUpper)
+import GHC.Generics (Generic)
+import System.IO.Error(catchIOError)
+
+data Diccionario = Diccionario {
+    palabras :: [String]
+} deriving (Generic, Show)
 
 
 data State = State {
@@ -14,19 +21,34 @@ data State = State {
     mensajeFinal   :: Maybe String     -- ^ Mensaje de finalización del juego
 } deriving (Show)
 
-
 main :: IO ()
 main = do
-    putStrLn (ansiBgRedColor <> "Ingrese la palabra secreta: " <> ansiResetColor)
-    palabra <- getLine
-    let palabraMayuscula = map toUpper palabra
-    let nuevoJuego = iniciarJuego palabraMayuscula 5
-    let estado_inicial = State nuevoJuego "" Nothing Nothing
-    s <- runInteractive' (wordle estado_inicial)
-    case mensajeFinal s of
-        Just mensaje -> putStrLn mensaje
-        Nothing -> putStrLn "Gracias por jugar!"
+    archivo <- catchIOError (readFile "diccionario.txt") (\_ -> pure "")
+    if null archivo then
+      putStrLn "Error al cargar el archivo"
+    else do
+      let diccionario = Diccionario {palabras = lines archivo}
+      let estadoInicial = cargarArchivo diccionario
+      s <- runInteractive' (wordle estadoInicial)
+      case mensajeFinal s of
+          Just mensaje -> putStrLn mensaje
+          Nothing -> putStrLn "Gracias por jugar!"
+        
 
+{- Leer archivo e iniciar juego con palabra random -}
+cargarArchivo :: Diccionario -> State
+cargarArchivo diccionario = 
+    let palabra = obtenerPalabraRandom diccionario
+        nuevoJuego = iniciarJuego palabra 5
+    in State nuevoJuego "" Nothing Nothing
+
+{- Obtiene una palabra random del diccionario -}
+obtenerPalabraRandom :: Diccionario -> String
+obtenerPalabraRandom diccionario = head (palabras diccionario)
+
+-- palabraEnDiccionario :: Diccionario -> String -> Bool
+
+{- Sandbox -}
 wordle :: State -> Sandbox State
 wordle primerEstado =
     Sandbox {
