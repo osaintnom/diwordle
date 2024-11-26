@@ -1,10 +1,8 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+
 module Main where
 
-import Core (match)
+import CLI qualified
 
 main :: IO ()
-main = do
-  let resultado = match "posta" "assas"
-  print resultado
-
-
+main = CLI.main

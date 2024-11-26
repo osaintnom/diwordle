@@ -3,7 +3,15 @@ module Core (Match(..), match) where
 data Match = Correcto | LugarIncorrecto | NoPertenece
   deriving (Eq, Show)
 
--- Función principal que obtiene la lista final con los resultados.
+{-| Dada una palabra objetivo y un intento, devuelve una lista de tuplas
+    donde el primer elemento es una letra del intento y el segundo es
+    un valor de tipo Match que indica si la letra es correcta y está en
+    la posición correcta, si es correcta pero está en la posición incorrecta
+    o si no pertenece a la palabra objetivo.
+    
+    >>> match "posta" "seria"
+    [('s',LugarIncorrecto),('e',NoPertenece),('r',NoPertenece),('i',NoPertenece),('a',Correcto)]
+-}
 match :: String -> String -> [(Char, Match)]
 match objetivo intento = 
   let originalList = checkSiEsCorrecto objetivo (checkSiEsta objetivo intento)
