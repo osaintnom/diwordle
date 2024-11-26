@@ -2,7 +2,7 @@
 module CLI(main) where
 
 import Game
-import Core (match, Match(..))
+import Core (Match(..))
 import TinyApp.Interactive
 import Data.Char (toUpper)
 
@@ -17,7 +17,7 @@ data State = State {
 
 main :: IO ()
 main = do
-    putStrLn "Ingrese la palabra secreta:"
+    putStrLn (ansiBgRedColor <> "Ingrese la palabra secreta: " <> ansiResetColor)
     palabra <- getLine
     let palabraMayuscula = map toUpper palabra
     let nuevoJuego = iniciarJuego palabraMayuscula 5
@@ -111,20 +111,18 @@ showCasilla (Just c) color = color <> " " <> [c] <> " " <> ansiResetColor
 
 {- Selecciona el color de fondo de la casilla según el match -}
 selectColor :: Match -> String
-selectColor Correcto = ansiBgGreenColor <> ansiFgBlackColor
-selectColor LugarIncorrecto = ansiBgYellowColor <> ansiFgBlackColor
-selectColor NoPertenece = ansiBgRedColor <> ansiFgBlackColor
+selectColor Correcto = ansiBgGreenColor
+selectColor LugarIncorrecto = ansiBgYellowColor
+selectColor NoPertenece = ansiBgRedColor
 
 {- ANSI ESCAPE COLORS -}
 type Color = String
-ansiResetColor, ansiBgYellowColor, ansiBgGreenColor, ansiBgRedColor, ansiFgWhiteColor, ansiFgBlackColor, ansiBgGrayColor :: Color
+ansiResetColor, ansiBgYellowColor, ansiBgGreenColor, ansiBgRedColor, ansiBgGrayColor :: Color
 ansiResetColor = "\ESC[39m\ESC[49m"
 ansiBgYellowColor = "\ESC[103m"
 ansiBgGreenColor = "\ESC[42m"
 ansiBgRedColor = "\ESC[41m"
 ansiBgGrayColor = "\ESC[100m"
-ansiFgWhiteColor = "\ESC[97m"
-ansiFgBlackColor = "\ESC[30m"
 
 {- Devuelve el mensaje de error según el resultado del intento -}
 mensajeOut :: Maybe ResultadoIntento -> String
