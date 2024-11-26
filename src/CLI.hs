@@ -18,9 +18,9 @@ data State = State {
 main :: IO ()
 main = do
     palabra <- getLine
-    let nuevoJuego = iniciarJuego palabra 5
+    let palabraMayuscula = map toUpper palabra
+    let nuevoJuego = iniciarJuego palabraMayuscula 5
     let estado_inicial = State nuevoJuego "" Nothing Nothing
-    putStrLn "Bienvenido a Wordle!"
     s <- runInteractive' (wordle estado_inicial)
     case mensajeFinal s of
         Just mensaje -> putStrLn mensaje
@@ -30,9 +30,6 @@ wordle :: State -> Sandbox State
 wordle primerEstado =
     Sandbox {
         initialize = primerEstado,
-        -- juego = vacio?
-        -- entradaUsuario = ""
-        -- mensajeFinal = Nothing
         update = \(Key key _) s ->
         if juegoFinalizado (juego s)
           then (s, Exit)
@@ -55,82 +52,86 @@ wordle primerEstado =
                   PalabraInvalida -> (s {estadoIntento = Just PalabraInvalida}, Continue)
                   IntentoYaRealizado -> (s {estadoIntento = Just IntentoYaRealizado}, Continue)
 
-          KChar c -> if length (entradaUsuario s) < largoPalabraSecreta (juego s) then (s {entradaUsuario = entradaUsuario s <> [c]}, Continue) else (s, Continue)
-          KBS -> (s {entradaUsuario = init (entradaUsuario s)}, Continue)
+          KChar c -> if length (entradaUsuario s) < largoPalabraSecreta (juego s) then (s {entradaUsuario = entradaUsuario s <> [toUpper c]}, Continue) else (s, Continue)
+          KBS -> if length (entradaUsuario s) >0 then (s {entradaUsuario = init (entradaUsuario s)}, Continue) else (s, Continue)
           _ -> (s, Continue),
 
-        render = (\s ->  showJuego (juego s) <> 
-                        if intentosRestantes (juego s) > 0 then showEntrada (entradaUsuario s) (largoPalabraSecreta (juego s)) else "" <> "\n" <> 
-                        mensajeOut (estadoIntento s)<>
-                        -- juego termiando? xq no imprime
-                        if juegoFinalizado (juego s) then "Juego finalizado" else "")
+        render = \s ->  showJuego s <>
+                        mensajeOut (estadoIntento s) <> "\n" <>
+                        if juegoFinalizado (juego s) then "Juego finalizado. La palabra es: " <> obtenerPalabraSecreta (juego s) else " " <> "\n"
     }
--- CORREGIR MENSAJEOUT Y VER PORQUE NO ANDA
-mensajeOut :: Maybe ResultadoIntento -> String
-mensajeOut Nothing = "adasd"
-mensajeOut (Just LargoInvalido) = "Error: La palabra ingresada no tiene el largo correcto\n"
-mensajeOut (Just PalabraInvalida) = "Error: La palabra ingresada no es valida\n"
-mensajeOut (Just IntentoYaRealizado) = "Error: La palabra ingresada ya fue ingresada\n"
-mensajeOut (Just Valido) = "todo bien"
 
-showEntrada :: String -> Int -> String
-showEntrada entrada x = concatMap (\c -> " | " <> [toUpper c] <> " | ") entrada <> concat (replicate (x - length entrada) " | _ | ") <> "\n"
-
-
-showJuego :: Juego -> String
-showJuego j =
+{- DISPLAY HELPERS -}
+{- Devuelve el string del juego -}
+showJuego :: State -> String
+showJuego s =
+  let j = juego s
+      largoPalabra = largoPalabraSecreta j
+  in
+    if juegoFinalizado j then 
     concatMap showIntento (obtenerIntentos j)
-    <> concatMap showVacio (replicate (intentosRestantes j - 1) (largoPalabraSecreta j))
+    <> concatMap showVacio (replicate (intentosRestantes j ) largoPalabra)
+    <> showSeparador largoPalabra
+    else
+        concatMap showIntento (obtenerIntentos j)
+    <> showSeparador largoPalabra <> showEntrada (entradaUsuario s) largoPalabra
+    <> concatMap showVacio (replicate (intentosRestantes j -1) largoPalabra)
+    <> showSeparador largoPalabra
 
+{- Devuelve el string de la palabra que escribe el jugador -}
+showEntrada :: String -> Int -> String
+showEntrada entrada x = 
+  concatMap (\c -> "|" <> showCasilla (Just c) ansiBgGrayColor) entrada 
+  <> concat (replicate (x - length entrada) ("|" <> showCasilla (Just ' ') ansiBgGrayColor)) 
+  <> "| \n"
+
+{- Devuelve el string de una fila vacía -}
 showVacio :: Int -> String
-showVacio n = concat (replicate n " | _ | ") <> "\n\n"
+showVacio n =
+  showSeparador n
+  <> concat (replicate n ("|" <> showCasilla (Just ' ') ansiBgGrayColor)) 
+  <> "|\n"
 
+{- Devuelve el string de un intento (fila) -}
 showIntento :: (String, [(Char, Match)]) -> String
 showIntento (_, matches) =
-    " " <> concatMap (\m -> showMatch m <> "  ") matches <> "\n\n"
+  showSeparador (length matches)
+  <> concatMap (\(c, m) -> "|" <> showCasilla (Just c) (selectColor m)) matches
+  <> "|\n"
 
+{- Devuelve el string de un separador de casillas (len n) -}
+showSeparador :: Int -> String
+showSeparador n = concat (replicate n "+---") <> "+\n"
 
-showMatch :: (Char, Match) -> String
-showMatch (c, m) =
-    case m of
-        Correcto -> "| " <> ansiBgGreenColor <> [toUpper c] <> ansiResetColor <> " |"
-        LugarIncorrecto -> "| " <> ansiBgYellowColor <> [toUpper c] <> ansiResetColor <> " |"
-        NoPertenece -> "| " <> ansiBgRedColor <> [toUpper c] <> ansiResetColor <> " |"
+{- Devuelve el string de una casilla (len 3) con un caracter y un color de fondo -}
+showCasilla :: Maybe Char -> Color -> String
+showCasilla Nothing _ = ansiBgGrayColor <> "   " <> ansiResetColor
+showCasilla (Just c) color = color <> " " <> [c] <> " " <> ansiResetColor
 
-ansiResetColor, ansiBgYellowColor, ansiBgGreenColor, ansiBgRedColor :: String
+{- Selecciona el color de fondo de la casilla según el match -}
+selectColor :: Match -> String
+selectColor Correcto = ansiBgGreenColor <> ansiFgBlackColor
+selectColor LugarIncorrecto = ansiBgYellowColor <> ansiFgBlackColor
+selectColor NoPertenece = ansiBgRedColor <> ansiFgBlackColor
+
+{- ANSI ESCAPE COLORS -}
+type Color = String
+ansiResetColor, ansiBgYellowColor, ansiBgGreenColor, ansiBgRedColor, ansiFgWhiteColor, ansiFgBlackColor, ansiBgGrayColor :: Color
 ansiResetColor = "\ESC[39m\ESC[49m"
 ansiBgYellowColor = "\ESC[103m"
 ansiBgGreenColor = "\ESC[42m"
 ansiBgRedColor = "\ESC[41m"
+ansiBgGrayColor = "\ESC[100m"
+ansiFgWhiteColor = "\ESC[97m"
+ansiFgBlackColor = "\ESC[30m"
 
-{- Ejemplo de como seria un output
-main :: IO ()
-main = putStrLn $ ansiResetColor <> "|" <> ansiBgYellowColor <> " A " <> ansiResetColor <> "|" <> ansiBgGreenColor <> " V " <> ansiResetColor <> "|" <> ansiBgRedColor <> " R " <> ansiResetColor <> "|"
--}
-
-
-{-
--como hacer CLI-
-1.      Obtener por consola palabra secreta y crear juego
-2.      Mientras juego no este finalizado:
-2.1.        print nuevo estado
-2.2.        input = RecibirInput()
-2.3.        error o estado = enviarIntento input estado
-2.4.        si error:  (error := {palabra invalida, largo invalido})
-2.4.1           volver a (2.2)
-2.4.2       else si estado:
-2.4.2.1         si juegoFinalizado estado:
-2.4.2.1.1           devolver si gano y cant intentos 
-2.4.2.2         else: 
-                    volver a (2.2)
-3.      Mostrar resultados de cuantas veces jugo?
-
-todos se actualiza con conceptos visuales
-
-1 inicia en cli un juego completo --> 
-    2 es el loop jugando hasta que termine --> 
-        3 es el estado final cuando el jeugo ya termino y muestra las stats
--}
+{- Devuelve el mensaje de error según el resultado del intento -}
+mensajeOut :: Maybe ResultadoIntento -> String
+mensajeOut Nothing = ""
+mensajeOut (Just LargoInvalido) = "Error: La palabra ingresada no tiene el largo correcto\n"
+mensajeOut (Just PalabraInvalida) = "Error: La palabra ingresada no es valida\n"
+mensajeOut (Just IntentoYaRealizado) = "Error: La palabra ya fue ingresada\n"
+mensajeOut (Just Valido) = ""
 
 
 

@@ -11,6 +11,7 @@ module Game
     ganoJuego, -- HECHO
     largoPalabraSecreta, -- HECHO
     intentosRestantes, -- HECHO
+    obtenerPalabraSecreta,
     ResultadoIntento (..),
   )
 where
@@ -24,7 +25,7 @@ data ResultadoIntento = Valido | LargoInvalido | PalabraInvalida | IntentoYaReal
   deriving (Show, Eq)
 
 data Juego = Juego
-  { target :: String, -- La palabra secreta a adivinar
+  { palabraSecreta :: String, -- La palabra secreta a adivinar
     maxIntentos :: Int, -- Número máximo de intentos permitidos
     intentos :: [(String, [(Char, Match)])], -- Lista de intentos realizados y sus matches
     estado :: EstadoJuego -- Indica el estado del juego
@@ -34,7 +35,7 @@ data Juego = Juego
 iniciarJuego :: String -> Int -> Juego
 iniciarJuego secret maxInt =
   Juego
-    { target = secret,
+    { palabraSecreta = secret,
       maxIntentos = maxInt,
       intentos = [],
       estado = EnProceso
@@ -49,7 +50,7 @@ enviarIntento juego intento
   | intentoYaRealizado juego intento = (IntentoYaRealizado, juego)
   | otherwise = (Valido, juegoActualizado)
   where
-    conIntentos = juego {intentos = juego.intentos ++ [(intento, match juego.target intento)]}
+    conIntentos = juego {intentos = juego.intentos ++ [(intento, match juego.palabraSecreta intento)]}
     juegoActualizado = estadoJuego conIntentos
 
 -- Ver si intento esta en corpus?
@@ -60,14 +61,14 @@ esLargoValido juego intento
 
 esPalabraValida :: String -> Bool
 esPalabraValida intento
-    | not (all (`elem` ['a' .. 'z']) intento) = False
+    | not (all (`elem` ['A' .. 'Z']) intento) = False
     | otherwise = True
 
 intentoYaRealizado :: Juego -> String -> Bool
 intentoYaRealizado juego intento = any (\x -> fst x == intento) juego.intentos
 
 largoPalabraSecreta :: Juego -> Int
-largoPalabraSecreta juego = length juego.target
+largoPalabraSecreta juego = length juego.palabraSecreta
 
 estadoJuego :: Juego -> Juego
 estadoJuego juego
@@ -88,4 +89,7 @@ intentosRestantes juego = juego.maxIntentos - length juego.intentos
 
 obtenerIntentos :: Juego -> [(String, [(Char, Match)])]
 obtenerIntentos juego = juego.intentos
+
+obtenerPalabraSecreta :: Juego -> String
+obtenerPalabraSecreta juego = juego.palabraSecreta
 

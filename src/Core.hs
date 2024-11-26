@@ -57,8 +57,3 @@ countLugarIncorrectoCorrecto c ((char, m):xs) =
   if c == char && (m == LugarIncorrecto || m == Correcto)
     then 1 + countLugarIncorrectoCorrecto c xs 
     else countLugarIncorrectoCorrecto c xs
-
-
-
--- >>> match "posta" "sssss" 
--- [('s',NoPertenece),('s',NoPertenece),('s',Correcto),('s',NoPertenece),('s',NoPertenece)]
