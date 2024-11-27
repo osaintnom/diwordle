@@ -19,7 +19,8 @@ data State = State {
     juego          :: Juego,           -- ^ Estado actual del juego
     entradaUsuario :: String,          -- ^ Entrada actual del usuario
     estadoIntento  :: Maybe ResultadoIntento, -- ^ Estado del intento actual
-    mensajeFinal   :: Maybe String     -- ^ Mensaje de finalización del juego
+    mensajeFinal   :: Maybe String,     -- ^ Mensaje de finalización del juego
+    diccionario    :: Diccionario
 } deriving (Show)
 
 main :: IO ()
@@ -28,8 +29,8 @@ main = do
     if null archivo then
       putStrLn "Error al cargar el archivo"
     else do
-      let diccionario = Diccionario {palabras = lines archivo}
-      estadoInicial <- cargarArchivo diccionario
+      let nuevoDiccionario = Diccionario {palabras = lines archivo}
+      estadoInicial <- cargarArchivo nuevoDiccionario
       s <- runInteractive' (wordle estadoInicial)
       case mensajeFinal s of
           Just mensaje -> putStrLn mensaje
@@ -37,10 +38,10 @@ main = do
 
 {- Leer archivo e iniciar juego con palabra random -}
 cargarArchivo :: Diccionario -> IO State
-cargarArchivo diccionario = do
-    palabra <- obtenerPalabraRandom diccionario
+cargarArchivo dicc = do
+    palabra <- obtenerPalabraRandom dicc
     let nuevoJuego = iniciarJuego palabra 5
-    return $ State nuevoJuego "" Nothing Nothing
+    return $ State nuevoJuego "" Nothing Nothing dicc
 
 {- Obtiene una palabra random del diccionario -}
 obtenerPalabraRandom :: Diccionario -> IO String
@@ -62,20 +63,21 @@ wordle primerEstado =
         case key of
           KEsc -> (s, Exit)
           KEnter ->
-            let (resultado, nuevoJuego) = enviarIntento (juego s) (entradaUsuario s)
-             in case resultado of
+            let (resultado, nuevoJuego) = enviarIntento (juego s) (entradaUsuario s) (palabras (diccionario s))
+              in case resultado of
                   Valido ->
                     if juegoFinalizado nuevoJuego
                       then
                         let mensaje = if ganoJuego nuevoJuego
                                         then "Ganaste!"
                                         else "Perdiste!"
-                         in (State nuevoJuego "" (Just Valido) (Just mensaje), Continue)
+                         in (State nuevoJuego "" (Just Valido) (Just mensaje) (diccionario s), Continue)
                       else
-                        (State nuevoJuego "" (Just Valido) Nothing, Continue)
+                        (State nuevoJuego "" (Just Valido) Nothing (diccionario s), Continue)
                   LargoInvalido -> (s {estadoIntento = Just LargoInvalido}, Continue)
                   PalabraInvalida -> (s {estadoIntento = Just PalabraInvalida}, Continue)
                   IntentoYaRealizado -> (s {estadoIntento = Just IntentoYaRealizado}, Continue)
+                  PalabraNoDiccionario -> (s {estadoIntento = Just PalabraNoDiccionario}, Continue)
 
           KChar c -> if length (entradaUsuario s) < largoPalabraSecreta (juego s) then (s {entradaUsuario = entradaUsuario s <> [toUpper c]}, Continue) else (s, Continue)
           KBS -> if length (entradaUsuario s) >0 then (s {entradaUsuario = init (entradaUsuario s)}, Continue) else (s, Continue)
@@ -154,6 +156,7 @@ mensajeOut Nothing = ""
 mensajeOut (Just LargoInvalido) = "Error: La palabra ingresada no tiene el largo correcto\n"
 mensajeOut (Just PalabraInvalida) = "Error: La palabra ingresada no es valida\n"
 mensajeOut (Just IntentoYaRealizado) = "Error: La palabra ya fue ingresada\n"
+mensajeOut (Just PalabraNoDiccionario) = "Error: La palabra no pertenece al diccionario\n"
 mensajeOut (Just Valido) = ""
 
 

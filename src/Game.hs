@@ -21,7 +21,7 @@ import Core (Match (..), match)
 data EstadoJuego = Gano | Perdio | EnProceso
   deriving (Show, Eq)
 
-data ResultadoIntento = Valido | LargoInvalido | PalabraInvalida | IntentoYaRealizado
+data ResultadoIntento = Valido | LargoInvalido | PalabraInvalida | IntentoYaRealizado |PalabraNoDiccionario
   deriving (Show, Eq)
 
 data Juego = Juego
@@ -43,11 +43,12 @@ iniciarJuego secret maxInt =
 
 -- | Toma un juego y un intento
 --    -> Devuelve Error o Juego (actualizado)
-enviarIntento :: Juego -> String -> (ResultadoIntento, Juego)
-enviarIntento juego intento
+enviarIntento :: Juego -> String -> [String] -> (ResultadoIntento, Juego)
+enviarIntento juego intento diccionario
   | not (esLargoValido juego intento) = (LargoInvalido, juego)
   | not (esPalabraValida intento) = (PalabraInvalida, juego)
   | intentoYaRealizado juego intento = (IntentoYaRealizado, juego)
+  | not (esPalabraDiccionario juego intento diccionario) = (PalabraNoDiccionario, juego)
   | otherwise = (Valido, juegoActualizado)
   where
     conIntentos = juego {intentos = juego.intentos ++ [(intento, match juego.palabraSecreta intento)]}
@@ -57,6 +58,11 @@ enviarIntento juego intento
 esLargoValido :: Juego -> String -> Bool
 esLargoValido juego intento
   | length intento /= largoPalabraSecreta juego = False
+  | otherwise = True
+
+esPalabraDiccionario :: Juego -> String -> [String] -> Bool
+esPalabraDiccionario _ intento diccionario
+  | intento `notElem` diccionario = False
   | otherwise = True
 
 esPalabraValida :: String -> Bool

@@ -44,6 +44,7 @@ test-suite diwordle-test
                         base >=4.17.2.1,
                         diwordle,
                         tasty >=1.4 && <1.5,   
-                        tasty-hspec >=1.2 && <1.3
+                        tasty-hspec >=1.2 && <1.3,
+                        tasty-hunit >=0.10
   ghc-options:          -Wall
   default-language:     Haskell2010
