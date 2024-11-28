@@ -3,6 +3,15 @@ module Core (Match(..), match) where
 data Match = Correcto | LugarIncorrecto | NoPertenece
   deriving (Eq, Show)
 
+
+match :: String -> String -> [(Char, Match)]
+match objetivo intento = 
+  let statuses = []
+
+
+
+
+
 {-| Dada una palabra objetivo y un intento, devuelve una lista de tuplas
     donde el primer elemento es una letra del intento y el segundo es
     un valor de tipo Match que indica si la letra es correcta y está en

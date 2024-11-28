@@ -23,11 +23,10 @@ tests = testGroup "diwordle Tests"
       match "posta" "savia" @?= [
           ('s', LugarIncorrecto),
           ('a', NoPertenece),
-          ('v', NoPertenece),
+          ('p', LugarIncorrecto),
           ('i', NoPertenece),
           ('a', Correcto)
         ]
-
   , testCase "match \"asado\" \"aosso\" produces the expected result" $
       match "asado" "aosso" @?= [
           ('a', Correcto),
@@ -36,6 +35,7 @@ tests = testGroup "diwordle Tests"
           ('s', NoPertenece),
           ('o', Correcto)
         ]
+
 
     -- You can add more tests as needed
   ]

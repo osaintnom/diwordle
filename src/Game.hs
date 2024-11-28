@@ -28,41 +28,37 @@ data Juego = Juego
   { palabraSecreta :: String, -- La palabra secreta a adivinar
     maxIntentos :: Int, -- Número máximo de intentos permitidos
     intentos :: [(String, [(Char, Match)])], -- Lista de intentos realizados y sus matches
-    estado :: EstadoJuego -- Indica el estado del juego
+    estado :: EstadoJuego, -- Indica el estado del juego
+    funcionDicc :: String -> Bool --IGNORE ESTO
   }
-  deriving (Show)
 
-iniciarJuego :: String -> Int -> Juego
-iniciarJuego secret maxInt =
+    
+iniciarJuego :: String -> Int -> (String -> Bool) -> Juego  
+iniciarJuego secret maxInt f =
   Juego
     { palabraSecreta = secret,
       maxIntentos = maxInt,
       intentos = [],
-      estado = EnProceso
+      estado = EnProceso,
+      funcionDicc = f
     }
 
 -- | Toma un juego y un intento
 --    -> Devuelve Error o Juego (actualizado)
-enviarIntento :: Juego -> String -> [String] -> (ResultadoIntento, Juego)
-enviarIntento juego intento diccionario
+enviarIntento :: Juego -> String -> (ResultadoIntento, Juego)
+enviarIntento juego intento
   | not (esLargoValido juego intento) = (LargoInvalido, juego)
   | not (esPalabraValida intento) = (PalabraInvalida, juego)
   | intentoYaRealizado juego intento = (IntentoYaRealizado, juego)
-  | not (esPalabraDiccionario juego intento diccionario) = (PalabraNoDiccionario, juego)
+  | not (juego.funcionDicc intento) = (PalabraNoDiccionario, juego)
   | otherwise = (Valido, juegoActualizado)
   where
     conIntentos = juego {intentos = juego.intentos ++ [(intento, match juego.palabraSecreta intento)]}
     juegoActualizado = estadoJuego conIntentos
 
--- Ver si intento esta en corpus?
 esLargoValido :: Juego -> String -> Bool
 esLargoValido juego intento
   | length intento /= largoPalabraSecreta juego = False
-  | otherwise = True
-
-esPalabraDiccionario :: Juego -> String -> [String] -> Bool
-esPalabraDiccionario _ intento diccionario
-  | intento `notElem` diccionario = False
   | otherwise = True
 
 esPalabraValida :: String -> Bool
