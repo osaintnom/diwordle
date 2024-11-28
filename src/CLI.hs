@@ -5,7 +5,7 @@ module CLI(main) where
 import Game
 import Core (Match(..))
 import TinyApp.Interactive (runInteractive', Sandbox(..), Key(..), ContinueExit(..), Event (Key))
-import Data.Char (toUpper)
+import Data.Char (toUpper, isAlpha)
 import GHC.Generics (Generic)
 import System.IO.Error(catchIOError)
 import System.Random.Stateful
@@ -79,11 +79,16 @@ wordle primerEstado =
                   IntentoYaRealizado -> (s {estadoIntento = Just IntentoYaRealizado}, Continue)
                   PalabraNoDiccionario -> (s {estadoIntento = Just PalabraNoDiccionario}, Continue)
 
-          KChar c -> if length (entradaUsuario s) < largoPalabraSecreta (juego s) then (s {entradaUsuario = entradaUsuario s <> [toUpper c]}, Continue) else (s, Continue)
+          
           KBS -> if length (entradaUsuario s) >0 then (s {entradaUsuario = init (entradaUsuario s)}, Continue) else (s, Continue)
+          KChar c -> if isAlpha c then 
+                        if length (entradaUsuario s) < largoPalabraSecreta (juego s)
+                          then (s {entradaUsuario = entradaUsuario s <> [toUpper c]}, Continue)
+                        else (s, Continue)
+                      else (s {estadoIntento = Just CaracterInvalido}, Continue)
           _ -> (s, Continue),
 
-        render = \s ->  showJuego s <>
+          render = \s ->  showJuego s <>
                         mensajeOut (estadoIntento s) <> "\n" <>
                         if juegoFinalizado (juego s) then "Juego finalizado. La palabra es: " <> obtenerPalabraSecreta (juego s) else " " <> "\n"
     }
@@ -157,6 +162,7 @@ mensajeOut (Just LargoInvalido) = "Error: La palabra ingresada no tiene el largo
 mensajeOut (Just PalabraInvalida) = "Error: La palabra ingresada no es valida\n"
 mensajeOut (Just IntentoYaRealizado) = "Error: La palabra ya fue ingresada\n"
 mensajeOut (Just PalabraNoDiccionario) = "Error: La palabra no pertenece al diccionario\n"
+mensajeOut (Just CaracterInvalido) = "Error: El cáracter ingresado no es una letra\n"
 mensajeOut (Just Valido) = ""
 
 

@@ -21,7 +21,7 @@ import Core (Match (..), match)
 data EstadoJuego = Gano | Perdio | EnProceso
   deriving (Show, Eq)
 
-data ResultadoIntento = Valido | LargoInvalido | PalabraInvalida | IntentoYaRealizado |PalabraNoDiccionario
+data ResultadoIntento = Valido | LargoInvalido | PalabraInvalida | IntentoYaRealizado |PalabraNoDiccionario | CaracterInvalido
   deriving (Show, Eq)
 
 data Juego = Juego
