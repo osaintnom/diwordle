@@ -12,16 +12,17 @@ match intento solucion = matchesFinal
 
     -- Procesamos primero los casos correctos
     (matchesCorrectos, caracteresCorrectos) =
-      foldl checkCasosCorrectos (matchesInit, caracteresCheckeadosInit) (zip3 intento solucion [0..])
+      foldl checkCorrecto (matchesInit, caracteresCheckeadosInit) (zip3 intento solucion [0..])
 
-    (matchesCorrectosIncorrectos, _) =
-      foldl (checkCasosIncorrectos solucion) (matchesCorrectos, caracteresCorrectos) (zip intento [0..])
+    (matchesCorrectosIncorrectos, _) = 
+      foldl (checkNoPertenece solucion) (matchesCorrectos, caracteresCorrectos) (zip intento [0..])
+      -- foldl (checkNoPertenece solucion) (matchesCorrectos, caracteresCorrectos) (zip intento [0..])
 
     matchesFinal = zip intento matchesCorrectosIncorrectos
 
 -- Maneja los casos Correcto
-checkCasosCorrectos :: ([Match], [Bool]) -> (Char, Char, Int) -> ([Match], [Bool])
-checkCasosCorrectos (matches, checkeados) (letraIntento, letraSolucion, posicion) =
+checkCorrecto :: ([Match], [Bool]) -> (Char, Char, Int) -> ([Match], [Bool])
+checkCorrecto (matches, checkeados) (letraIntento, letraSolucion, posicion) =
   if letraIntento == letraSolucion then
     let checkeadosActualizados = reemplazarValor posicion True checkeados
         matchesActualizados = reemplazarValor posicion Correcto matches
@@ -32,25 +33,38 @@ checkCasosCorrectos (matches, checkeados) (letraIntento, letraSolucion, posicion
     in (matchesActualizados, checkeadosActualizados)
 
 -- Maneja los casos LugarIncorrecto o NoPertenece
-checkCasosIncorrectos :: String -> ([Match], [Bool]) -> (Char, Int) -> ([Match], [Bool])
-checkCasosIncorrectos solucion (matches, checkeados) (letraIntento, posicion)
+checkNoPertenece :: String -> ([Match], [Bool]) -> (Char, Int) -> ([Match], [Bool])
+checkNoPertenece solucion (matches, checkeados) (letraIntento, posicion)
   | (matches !! posicion) == Correcto = (matches, checkeados)
   | fst (letraEnPalabra letraIntento solucion checkeados) =
-    let checkeadosActualizados = reemplazarValor (snd (letraEnPalabra letraIntento solucion checkeados)) True checkeados
+    let checkeadosActualizados = snd (letraEnPalabra letraIntento solucion checkeados)
         matchesActualizados = reemplazarValor posicion LugarIncorrecto matches
     in (matchesActualizados, checkeadosActualizados)
   | otherwise =
-    let checkeadosActualizados = reemplazarValor (snd (letraEnPalabra letraIntento solucion checkeados)) True checkeados
+    let checkeadosActualizados = snd (letraEnPalabra letraIntento solucion checkeados)
         matchesActualizados = reemplazarValor posicion NoPertenece matches
     in (matchesActualizados, checkeadosActualizados)
 
 
-letraEnPalabra :: Char -> String -> [Bool] -> (Bool, Int)
+letraEnPalabra :: Char -> String -> [Bool] -> (Bool, [Bool])
 letraEnPalabra letra solucion checkeados = 
-  case filter (\x -> solucion !! x == letra && not (checkeados !! x)) [0..length solucion - 1] of
-    [] -> (False, -1)
-    (posicion:_) -> (True, posicion)
+  let aparicion = primeraAparicion letra solucion checkeados
+  in if aparicion == -1 then (False, checkeados) else (True, reemplazarValor aparicion True checkeados)
+
+
+primeraAparicion :: Char -> String -> [Bool] -> Int
+primeraAparicion letra solucion checkeados
+  | null solucion = -1
+  | null posicionesConAparicion = -1
+  | otherwise = extractIdx (head posicionesConAparicion)
+  where
+    posicionesConAparicion = filter (\(char, check, _) -> char == letra && not check) (zip3 solucion checkeados [0..])
+
+    extractIdx :: (Char, Bool, Int) -> Int
+    extractIdx (_, _, idx) = idx
+
 
 -- Reemplaza el elemento en un índice específico en una lista
 reemplazarValor :: Int -> a -> [a] -> [a]
 reemplazarValor i x xs = take i xs ++ [x] ++ drop (i + 1) xs
+

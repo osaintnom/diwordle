@@ -53,7 +53,7 @@ enviarIntento juego intento
   | not (juego.funcionDicc intento) = (PalabraNoDiccionario, juego)
   | otherwise = (Valido, juegoActualizado)
   where
-    conIntentos = juego {intentos = juego.intentos ++ [(intento, match juego.palabraSecreta intento)]}
+    conIntentos = juego {intentos = juego.intentos ++ [(intento, match intento juego.palabraSecreta)]}
     juegoActualizado = estadoJuego conIntentos
 
 esLargoValido :: Juego -> String -> Bool
