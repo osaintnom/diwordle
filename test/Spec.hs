@@ -23,7 +23,7 @@ tests = testGroup "diwordle Tests"
       match "posta" "savia" @?= [
           ('s', LugarIncorrecto),
           ('a', NoPertenece),
-          ('p', LugarIncorrecto),
+          ('v', LugarIncorrecto),
           ('i', NoPertenece),
           ('a', Correcto)
         ]
