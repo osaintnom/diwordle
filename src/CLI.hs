@@ -10,6 +10,8 @@ import Game
 import System.IO.Error (catchIOError)
 import System.Random.Stateful
 import TinyApp.Interactive (ContinueExit (..), Event (Key), Key (..), Sandbox (..), runInteractive')
+import Data.List (nub)
+
 
 data Diccionario = Diccionario
   { palabras :: [String]
@@ -88,7 +90,7 @@ wordle primerEstado =
                     PalabraInvalida -> (s {estadoIntento = Just PalabraInvalida}, Continue)
                     IntentoYaRealizado -> (s {estadoIntento = Just IntentoYaRealizado}, Continue)
                     PalabraNoDiccionario -> (s {estadoIntento = Just PalabraNoDiccionario}, Continue)
-            KChar c -> if isAlpha c then 
+            KChar c -> if isAlpha c then
                         if length (entradaUsuario s) < largoPalabraSecreta (juego s)
                           then (s {entradaUsuario = entradaUsuario s <> [toUpper c]}, Continue)
                         else (s, Continue)
@@ -97,12 +99,32 @@ wordle primerEstado =
             _ -> (s, Continue),
       render = \s ->
         showJuego s
+          <> "\n"
+                  <> (let mensaje = mensajeLetraDescartada (entradaUsuario s) (letrasDescartadas (obtenerIntentos (juego s)))
+            in if null mensaje
+                then ""
+                else mensaje)
+          <> "Letras descartadas: " <> letrasDescartadas (obtenerIntentos (juego s))<> "\n"
           <> mensajeOut (estadoIntento s)
           <> "\n"
           <> if juegoFinalizado (juego s) then "Juego finalizado. La palabra es: " <> obtenerPalabraSecreta (juego s) else " " <> "\n"
     }
 
+
 {- DISPLAY HELPERS -}
+{-Devuelve las letras descatadas que fuero usadas-}
+letrasDescartadas :: [(String, [(Char, Match)])] -> String
+letrasDescartadas xs = nub noPerteneceSinExcepciones
+  where
+    -- Todas las letras marcadas como NoPertenece
+    todasNoPertenece = [ c | (_, matches) <- xs, (c, m) <- matches, m == NoPertenece ]
+
+    -- Todas las letras marcadas como Correcto o LugarIncorrecto
+    todasExcepciones = [ c | (_, matches) <- xs, (c, m) <- matches, m /= NoPertenece ]
+
+    -- Letras NoPertenece que no están en Excepciones
+    noPerteneceSinExcepciones = filter (`notElem` todasExcepciones) todasNoPertenece
+
 {- Devuelve el string del juego -}
 showJuego :: State -> String
 showJuego s =
@@ -175,3 +197,11 @@ mensajeOut (Just IntentoYaRealizado) = "Error: La palabra ya fue ingresada\n"
 mensajeOut (Just PalabraNoDiccionario) = "Error: La palabra no pertenece al diccionario\n"
 mensajeOut (Just CaracterInvalido) = "Error: El cáracter ingresado no es una letra\n"
 mensajeOut (Just Valido) = ""
+
+{- Genera mensajes de advertencia para las letras descartadas usadas en la entrada del usuario.-}
+mensajeLetraDescartada :: String -> String -> String
+mensajeLetraDescartada "" _ = ""
+mensajeLetraDescartada (x:rest) descartadas =
+    if x `elem` descartadas
+        then "¡CUIDADO! La letra '" ++ [x] ++ "' fue descartada.\n" ++ mensajeLetraDescartada rest descartadas
+        else mensajeLetraDescartada rest descartadas
