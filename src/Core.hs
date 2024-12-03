@@ -1,10 +1,18 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Core (Match(..), match) where
 
+import GHC.Generics (Generic)
+import Data.Aeson (ToJSON, FromJSON, encode, decode)
+
 data Match = Correcto | LugarIncorrecto | NoPertenece
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Match
+instance FromJSON Match
 
 match :: String -> String -> [(Char, Match)]
-match intento solucion = matchesFinal
+match objetivo intento = matchesFinal
   where
     -- Inicializamos las listas de matches y caracteres checkeados
     caracteresCheckeadosInit = replicate (length intento) False
@@ -12,18 +20,17 @@ match intento solucion = matchesFinal
 
     -- Procesamos primero los casos correctos
     (matchesCorrectos, caracteresCorrectos) =
-      foldl checkCorrecto (matchesInit, caracteresCheckeadosInit) (zip3 intento solucion [0..])
+      foldl checkCorrecto (matchesInit, caracteresCheckeadosInit) (zip3 intento objetivo [0..])
 
     (matchesCorrectosIncorrectos, _) = 
-      foldl (checkNoPertenece solucion) (matchesCorrectos, caracteresCorrectos) (zip intento [0..])
-      -- foldl (checkNoPertenece solucion) (matchesCorrectos, caracteresCorrectos) (zip intento [0..])
+      foldl (checkNoPertenece objetivo) (matchesCorrectos, caracteresCorrectos) (zip intento [0..])
 
     matchesFinal = zip intento matchesCorrectosIncorrectos
 
 -- Maneja los casos Correcto
 checkCorrecto :: ([Match], [Bool]) -> (Char, Char, Int) -> ([Match], [Bool])
-checkCorrecto (matches, checkeados) (letraIntento, letraSolucion, posicion) =
-  if letraIntento == letraSolucion then
+checkCorrecto (matches, checkeados) (letraIntento, letraObjetivo, posicion) =
+  if letraIntento == letraObjetivo then
     let checkeadosActualizados = reemplazarValor posicion True checkeados
         matchesActualizados = reemplazarValor posicion Correcto matches
     in (matchesActualizados, checkeadosActualizados)
@@ -34,31 +41,31 @@ checkCorrecto (matches, checkeados) (letraIntento, letraSolucion, posicion) =
 
 -- Maneja los casos LugarIncorrecto o NoPertenece
 checkNoPertenece :: String -> ([Match], [Bool]) -> (Char, Int) -> ([Match], [Bool])
-checkNoPertenece solucion (matches, checkeados) (letraIntento, posicion)
+checkNoPertenece objetivo (matches, checkeados) (letraIntento, posicion)
   | (matches !! posicion) == Correcto = (matches, checkeados)
-  | fst (letraEnPalabra letraIntento solucion checkeados) =
-    let checkeadosActualizados = snd (letraEnPalabra letraIntento solucion checkeados)
+  | fst (letraEnPalabra letraIntento objetivo checkeados) =
+    let checkeadosActualizados = snd (letraEnPalabra letraIntento objetivo checkeados)
         matchesActualizados = reemplazarValor posicion LugarIncorrecto matches
     in (matchesActualizados, checkeadosActualizados)
   | otherwise =
-    let checkeadosActualizados = snd (letraEnPalabra letraIntento solucion checkeados)
+    let checkeadosActualizados = snd (letraEnPalabra letraIntento objetivo checkeados)
         matchesActualizados = reemplazarValor posicion NoPertenece matches
     in (matchesActualizados, checkeadosActualizados)
 
 
 letraEnPalabra :: Char -> String -> [Bool] -> (Bool, [Bool])
-letraEnPalabra letra solucion checkeados = 
-  let aparicion = primeraAparicion letra solucion checkeados
+letraEnPalabra letra objetivo checkeados = 
+  let aparicion = primeraAparicion letra objetivo checkeados
   in if aparicion == -1 then (False, checkeados) else (True, reemplazarValor aparicion True checkeados)
 
 
 primeraAparicion :: Char -> String -> [Bool] -> Int
-primeraAparicion letra solucion checkeados
-  | null solucion = -1
+primeraAparicion letra objetivo checkeados
+  | null objetivo = -1
   | null posicionesConAparicion = -1
   | otherwise = extractIdx (head posicionesConAparicion)
   where
-    posicionesConAparicion = filter (\(char, check, _) -> char == letra && not check) (zip3 solucion checkeados [0..])
+    posicionesConAparicion = filter (\(char, check, _) -> char == letra && not check) (zip3 objetivo checkeados [0..])
 
     extractIdx :: (Char, Bool, Int) -> Int
     extractIdx (_, _, idx) = idx

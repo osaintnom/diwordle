@@ -1,8 +1,0 @@
-cradle:
-  cabal:
-    - path: "./src"
-      component: "lib:diwordle"
-    - path: "./app"
-      component: "exe:diwordle"
-    - path: "./test"
-      component: "test:diwordle-test"
