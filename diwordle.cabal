@@ -14,7 +14,8 @@ library
   exposed-modules:      
                         Core,
                         Game,
-                        CLI
+                        CLI,
+                        Parser
   hs-source-dirs:       src
   build-depends:    
                         base >=4.17.2.1,
@@ -35,8 +36,7 @@ executable diwordle-exe
   build-depends:        
                         base >=4.17.2.1 && <4.18,
                         diwordle,
-                        tinyapp >=0.2.1.0 && <0.3,
-                        optparse-applicative
+                        tinyapp >=0.2.1.0 && <0.3
   ghc-options:          -threaded -Wall
   default-language:     Haskell2010
 
