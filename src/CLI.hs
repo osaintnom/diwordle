@@ -175,16 +175,23 @@ actualizarEstado (Key key _) s =
 {- Renderiza el juego -}
 renderJuego :: State -> String
 renderJuego s =
-  showJuego s
-    <> "\n"
-            <> (let mensaje = mensajeLetraDescartada (entradaUsuario s) (letrasDescartadas (obtenerIntentos (juego s)))
-      in if null mensaje
-          then ""
-          else mensaje)
-    <> "Letras descartadas: " <> letrasDescartadas (obtenerIntentos (juego s))<> "\n"
-    <> mensajeOut (estadoIntento s)
-    <> "\n"
-    <> if juegoFinalizado (juego s) then "Juego finalizado. La palabra es: " <> obtenerPalabraSecreta (juego s) else " " <> "\n"
+  let
+    -- Determina el mensaje de victoria o derrota
+    mensajeGanadoPerdido = if juegoFinalizado (juego s) then "GANASTE!! " else "PERDISTE :( "
+    -- Obtiene el mensaje de letras descartadas
+    mensajeDescartadas = mensajeLetraDescartada (entradaUsuario s) (letrasDescartadas (obtenerIntentos (juego s)))
+    -- Filtra el mensaje si está vacío
+    mensajeFiltrado = if null mensajeDescartadas then "" else mensajeDescartadas
+  in
+    showJuego s
+      <> "\n"
+      <> mensajeFiltrado
+      <> "Letras descartadas: " <> letrasDescartadas (obtenerIntentos (juego s)) <> "\n"
+      <> mensajeOut (estadoIntento s)
+      <> "\n"
+      <> if juegoFinalizado (juego s)
+          then mensajeGanadoPerdido <> "Juego finalizado. La palabra es: " <> obtenerPalabraSecreta (juego s)
+          else " \n"
 
 {-Devuelve las letras descatadas que fuero usadas-}
 letrasDescartadas :: [(String, [(Char, Match)])] -> String
