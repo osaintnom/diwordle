@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
-module CLI (main, Modo(..)) where
+module CLI (main, Modo(..), Config(..)) where
 
 import Game
 import Core (Match (..))
@@ -15,7 +15,6 @@ import System.IO.Error (catchIOError)
 import System.Random.Stateful
 import TinyApp.Interactive (ContinueExit (..), Event (Key), Key (..), Sandbox (..), runInteractive')
 import Data.List (nub)
-import Data.Time.Format.ISO8601 (iso8601ParseM)
 import Data.Time
 
 newtype Diccionario = Diccionario
@@ -37,49 +36,52 @@ data State = State
   }
 
 data Modo = Daily (Maybe String) | Random | FixedWord String deriving Show
+data Config = Config {
+  modo :: Modo,
+  filename :: String,
+  intentos :: Int
+} deriving (Generic, Show)
 
-main :: Modo -> IO ()
-main modo = do
-  archivo <- catchIOError (readFile "diccionario.txt") (\_ -> pure "")
+
+main :: Config -> IO ()
+main config = do
+  archivo <- catchIOError (readFile (filename config)) (\_ -> pure "")
   if null archivo
     then
       putStrLn "Error al cargar el archivo"
     else do
-      let diccionario = Diccionario {palabras = lines archivo}
-      case modo of
+      let diccionario' = Diccionario {palabras = lines archivo}
+      case modo config of
         Daily Nothing -> do
-          juegoAnterior <- cargarJuego "intentos.json" diccionario
+          juegoAnterior <- cargarJuego "intentos.json" diccionario'
           case juegoAnterior of
-            Just juegoAnterior -> do
-              let estadoInicial = State (juegoAnterior) "" Nothing Nothing diccionario
+            Just juegoAnterior' -> do
+              let estadoInicial = State juegoAnterior' "" Nothing Nothing diccionario'
               estado <- runInteractive' (wordle estadoInicial)
               guardarIntentos "intentos.json" (obtenerIntentos (juego estado))
               mostrarMensajeFinal estado
             Nothing -> do
               currentDate <- fmap (show . utctDay) getCurrentTime
-              estadoInicial <- inicializarConFecha diccionario currentDate 5
+              estadoInicial <- inicializarConFecha diccionario' currentDate (intentos config)
               estado <- runInteractive' (wordle estadoInicial)
               guardarIntentos "intentos.json" (obtenerIntentos (juego estado))
               mostrarMensajeFinal estado
 
         Daily (Just date) -> do
-          if fechaValida date
-            then do
-              estadoInicial <- inicializarConFecha diccionario date 5
-              estado <- runInteractive' (wordle estadoInicial)
-              mostrarMensajeFinal estado
-            else putStrLn "Fecha inválida"
+          estadoInicial <- inicializarConFecha diccionario' date (intentos config)
+          estado <- runInteractive' (wordle estadoInicial)
+          mostrarMensajeFinal estado
 
         Random -> do
-          estadoInicial <- inicializarRandom diccionario 5
+          estadoInicial <- inicializarRandom diccionario' (intentos config)
           estado <- runInteractive' (wordle estadoInicial)
           mostrarMensajeFinal estado
 
         FixedWord p -> do
           let palabra = map toUpper p
-          if palabraEnDiccionario diccionario palabra
+          if palabraEnDiccionario diccionario' palabra
             then do
-              let estadoInicial = State (iniciarJuego palabra 5 (palabraEnDiccionario diccionario)) "" Nothing Nothing diccionario
+              let estadoInicial = State (iniciarJuego palabra (intentos config) (palabraEnDiccionario diccionario')) "" Nothing Nothing diccionario'
               estado <- runInteractive' (wordle estadoInicial)
               mostrarMensajeFinal estado
             else putStrLn "La palabra no pertenece al diccionario"
@@ -90,29 +92,22 @@ mostrarMensajeFinal s = case mensajeFinal s of
   Nothing -> putStrLn "Gracias por jugar!"
 
 inicializarConFecha :: Diccionario -> String -> Int -> IO State
-inicializarConFecha diccionario fecha maxIntentos = do
-  palabra <- obtenerPalabraFecha diccionario fecha
-  let nuevoJuego = iniciarJuego palabra maxIntentos (palabraEnDiccionario diccionario)
-  return $ State nuevoJuego "" Nothing Nothing diccionario
+inicializarConFecha dicc fecha maxIntentos = do
+  palabra <- obtenerPalabraFecha dicc fecha
+  let nuevoJuego = iniciarJuego palabra maxIntentos (palabraEnDiccionario dicc)
+  return $ State nuevoJuego "" Nothing Nothing dicc
 
 obtenerPalabraFecha :: Diccionario -> String -> IO String
-obtenerPalabraFecha diccionario fecha = do
-  let indice = (read (filter (/= '-') fecha) :: Int) `mod` length (palabras diccionario)
-  return (palabras diccionario !! indice)
-
-{- Check si la fecha es valida -}
-fechaValida :: String -> Bool
-fechaValida fecha =
-  case iso8601ParseM fecha :: Maybe Day of
-    Just _  -> True
-    Nothing -> False
+obtenerPalabraFecha dicc fecha = do
+  let indice = (read (filter (/= '-') fecha) :: Int) `mod` length (palabras dicc)
+  return (palabras dicc !! indice)
 
 {- Iniciar juego con palabra random del diccionario -}
 inicializarRandom :: Diccionario -> Int -> IO State
-inicializarRandom diccionario maxIntentos= do
-  palabra <- obtenerPalabraRandom diccionario
-  let nuevoJuego = iniciarJuego palabra maxIntentos (palabraEnDiccionario diccionario)
-  return $ State nuevoJuego "" Nothing Nothing diccionario
+inicializarRandom dicc maxIntentos= do
+  palabra <- obtenerPalabraRandom dicc
+  let nuevoJuego = iniciarJuego palabra maxIntentos (palabraEnDiccionario dicc)
+  return $ State nuevoJuego "" Nothing Nothing dicc
 
 {- Obtiene una palabra random del diccionario -}
 obtenerPalabraRandom :: Diccionario -> IO String
@@ -122,7 +117,7 @@ obtenerPalabraRandom (Diccionario lista) = do
 
 {- Verifica si una palabra pertenece al diccionario -}
 palabraEnDiccionario :: Diccionario -> String -> Bool
-palabraEnDiccionario diccionario palabra = palabra `elem` palabras diccionario
+palabraEnDiccionario dicc palabra = palabra `elem` palabras dicc
 
 {- Sandbox -}
 wordle :: State -> Sandbox State
@@ -202,7 +197,7 @@ letrasDescartadas xs = nub noPerteneceSinExcepciones
 {- DAILY MODE GAME -}
 -- Función para guardar intentos en un archivo JSON
 guardarIntentos :: FilePath -> [(String, [(Char, Match)])] -> IO ()
-guardarIntentos ruta intentos = B.writeFile ruta (encode intentos)
+guardarIntentos ruta intentos' = B.writeFile ruta (encode intentos')
 
 -- Función para cargar intentos desde un archivo JSON
 cargarIntentos :: FilePath -> IO (Maybe [(String, [(Char, Match)])])
@@ -210,20 +205,20 @@ cargarIntentos ruta = decode <$> B.readFile ruta
 
 -- Función para cargar un juego desde un archivo JSON
 cargarJuego :: FilePath -> Diccionario -> IO (Maybe Juego)
-cargarJuego ruta diccionario = do
+cargarJuego ruta dicc = do
   existeArchivo <- doesFileExist ruta
   if not existeArchivo
     then do
       putStrLn $ "El archivo " ++ ruta ++ " no existe. No se puede cargar el juego."
       return Nothing
     else do
-      intentos <- cargarIntentos ruta
-      case intentos of
-        Just intentos -> do
+      intentos' <- cargarIntentos ruta
+      case intentos' of
+        Just intentos'' -> do
           currentDate <- fmap (show . utctDay) getCurrentTime
-          palabra <- obtenerPalabraFecha diccionario currentDate
-          let nuevoJuego = iniciarJuego palabra maxIntentos (palabraEnDiccionario diccionario)
-          let juegoCargado = actualizarIntentos nuevoJuego intentos
+          palabra <- obtenerPalabraFecha dicc currentDate
+          let nuevoJuego = iniciarJuego palabra maxIntentos (palabraEnDiccionario dicc)
+          let juegoCargado = actualizarIntentos nuevoJuego intentos''
           return (Just juegoCargado)
         Nothing -> return Nothing
   where
