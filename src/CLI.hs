@@ -172,7 +172,7 @@ renderJuego :: State -> String
 renderJuego s =
   let
     -- Determina el mensaje de victoria o derrota
-    mensajeGanadoPerdido = if juegoFinalizado (juego s) then "GANASTE!! " else "PERDISTE :( "
+    mensajeGanadoPerdido = if ganoJuego (juego s) then "GANASTE!! " else "PERDISTE :( "
     -- Obtiene el mensaje de letras descartadas
     mensajeDescartadas = mensajeLetraDescartada (entradaUsuario s) (letrasDescartadas (obtenerIntentos (juego s)))
     -- Filtra el mensaje si está vacío
@@ -193,10 +193,10 @@ letrasDescartadas :: [(String, [(Char, Match)])] -> String
 letrasDescartadas xs = nub noPerteneceSinExcepciones
   where
     -- Todas las letras marcadas como NoPertenece
-    todasNoPertenece = [ c | (_, matches) <- xs, (c, m) <- matches, m == NoPertenece ]
+    todasNoPertenece = [c | (_, matches) <- xs, (c, m) <- matches, m == NoPertenece]
 
     -- Todas las letras marcadas como Correcto o LugarIncorrecto
-    todasExcepciones = [ c | (_, matches) <- xs, (c, m) <- matches, m /= NoPertenece ]
+    todasExcepciones = [c | (_,matches) <- xs, (c,m) <- matches, m /= NoPertenece]
 
     -- Letras NoPertenece que no están en Excepciones
     noPerteneceSinExcepciones = filter (`notElem` todasExcepciones) todasNoPertenece
