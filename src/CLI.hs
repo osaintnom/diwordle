@@ -1,11 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
-module CLI (main, Modo(..), Config(..)) where
+module CLI (main, Modo(..), Config(..), Diccionario, palabraEnDiccionario, obtenerPalabraFecha) where
 
 import Game
 import Core (Match (..))
-
 import Data.Char (toUpper, isAlpha)
 import GHC.Generics (Generic)
 import Data.Aeson (ToJSON, FromJSON, encode, decode)
@@ -54,23 +53,40 @@ main config = do
       case modo config of
         Daily Nothing -> do
           juegoAnterior <- cargarJuego "intentos.json" diccionario'
+          fechaHoy <- currentDay
           case juegoAnterior of
             Just juegoAnterior' -> do
               let estadoInicial = State juegoAnterior' "" Nothing Nothing diccionario'
               estado <- runInteractive' (wordle estadoInicial)
-              guardarIntentos "intentos.json" (obtenerIntentos (juego estado))
+              guardarIntentos "intentos.json" fechaHoy (obtenerIntentos (juego estado))
               mostrarMensajeFinal estado
             Nothing -> do
-              currentDate <- fmap (show . utctDay) getCurrentTime
-              estadoInicial <- inicializarConFecha diccionario' currentDate (intentos config)
+              estadoInicial <- inicializarConFecha diccionario' fechaHoy (intentos config)
               estado <- runInteractive' (wordle estadoInicial)
-              guardarIntentos "intentos.json" (obtenerIntentos (juego estado))
+              guardarIntentos "intentos.json" fechaHoy (obtenerIntentos (juego estado))
               mostrarMensajeFinal estado
 
         Daily (Just date) -> do
-          estadoInicial <- inicializarConFecha diccionario' date (intentos config)
-          estado <- runInteractive' (wordle estadoInicial)
-          mostrarMensajeFinal estado
+          fechaHoy <- currentDay
+          if (fechaHoy == date) then
+            do
+              juegoAnterior <- cargarJuego "intentos.json" diccionario'
+              case juegoAnterior of
+                Just juegoAnterior' -> do
+                  let estadoInicial = State juegoAnterior' "" Nothing Nothing diccionario'
+                  estado <- runInteractive' (wordle estadoInicial)
+                  guardarIntentos "intentos.json" fechaHoy (obtenerIntentos (juego estado))
+                  mostrarMensajeFinal estado
+                Nothing -> do
+                  estadoInicial <- inicializarConFecha diccionario' date (intentos config)
+                  estado <- runInteractive' (wordle estadoInicial)
+                  guardarIntentos "intentos.json" fechaHoy (obtenerIntentos (juego estado))
+                  mostrarMensajeFinal estado
+          else do
+            estadoInicial <- inicializarConFecha diccionario' date (intentos config)
+            estado <- runInteractive' (wordle estadoInicial)
+            guardarIntentos "intentos.json" fechaHoy (obtenerIntentos (juego estado))
+            mostrarMensajeFinal estado
 
         Random -> do
           estadoInicial <- inicializarRandom diccionario' (intentos config)
@@ -201,37 +217,6 @@ letrasDescartadas xs = nub noPerteneceSinExcepciones
     -- Letras NoPertenece que no están en Excepciones
     noPerteneceSinExcepciones = filter (`notElem` todasExcepciones) todasNoPertenece
 
-{- DAILY MODE GAME -}
--- Función para guardar intentos en un archivo JSON
-guardarIntentos :: FilePath -> [(String, [(Char, Match)])] -> IO ()
-guardarIntentos ruta intentos' = B.writeFile ruta (encode intentos')
-
--- Función para cargar intentos desde un archivo JSON
-cargarIntentos :: FilePath -> IO (Maybe [(String, [(Char, Match)])])
-cargarIntentos ruta = decode <$> B.readFile ruta
-
--- Función para cargar un juego desde un archivo JSON
-cargarJuego :: FilePath -> Diccionario -> IO (Maybe Juego)
-cargarJuego ruta dicc = do
-  existeArchivo <- doesFileExist ruta
-  if not existeArchivo
-    then do
-      putStrLn $ "El archivo " ++ ruta ++ " no existe. No se puede cargar el juego."
-      return Nothing
-    else do
-      intentos' <- cargarIntentos ruta
-      case intentos' of
-        Just intentos'' -> do
-          currentDate <- fmap (show . utctDay) getCurrentTime
-          palabra <- obtenerPalabraFecha dicc currentDate
-          let nuevoJuego = iniciarJuego palabra maxIntentos (palabraEnDiccionario dicc)
-          let juegoCargado = actualizarIntentos nuevoJuego intentos''
-          return (Just juegoCargado)
-        Nothing -> return Nothing
-  where
-    maxIntentos = 5
-
-
 {- RENDERIZACION -}
 {- Devuelve el string del juego -}
 showJuego :: State -> String
@@ -313,3 +298,51 @@ mensajeLetraDescartada (x:rest) descartadas =
     if x `elem` descartadas
         then "¡CUIDADO! La letra '" ++ [x] ++ "' fue descartada.\n" ++ mensajeLetraDescartada rest descartadas
         else mensajeLetraDescartada rest descartadas
+
+
+data Historial = Historial {
+    fecha :: String,
+    intentosDia :: [(String, [(Char, Match)])]
+} deriving (Generic)
+
+instance ToJSON Historial
+instance FromJSON Historial
+
+{- DAILY MODE GAME -}
+currentDay :: IO String
+currentDay = do
+  t <- getCurrentTime
+  tz <- getCurrentTimeZone
+  return $ show $ localDay $ utcToLocalTime tz t
+
+-- Función para guardar intentos en un archivo JSON
+guardarIntentos :: FilePath -> String -> [(String, [(Char, Match)])] -> IO ()
+guardarIntentos ruta fecha' intentos' = B.writeFile ruta (encode Historial {fecha = fecha', intentosDia = intentos'})
+
+-- Función para cargar intentos desde un archivo JSON
+cargarIntentos :: FilePath -> IO (Maybe Historial)
+cargarIntentos ruta = decode <$> B.readFile ruta
+
+-- Función para cargar un juego desde un archivo JSON
+cargarJuego :: FilePath -> Diccionario -> IO (Maybe Juego)
+cargarJuego ruta dicc = do
+  existeArchivo <- doesFileExist ruta
+  if not existeArchivo
+    then do
+      putStrLn $ "El archivo " ++ ruta ++ " no existe. No se puede cargar el juego."
+      return Nothing
+    else do
+      historial <- cargarIntentos ruta
+      case historial of
+        Just historial' -> do
+          fechaHoy <- currentDay
+          palabra <- obtenerPalabraFecha dicc fechaHoy
+          if fechaHoy == fecha historial' then do
+            let nuevoJuego = iniciarJuego palabra maxIntentos (palabraEnDiccionario dicc)
+            let juegoCargado = actualizarIntentos nuevoJuego (intentosDia historial')
+            return (Just juegoCargado)
+          else do
+            return (Just (iniciarJuego palabra maxIntentos (palabraEnDiccionario dicc)))
+        Nothing -> return Nothing
+  where
+    maxIntentos = 5

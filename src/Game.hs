@@ -82,6 +82,7 @@ estadoJuego juego
   | otherwise = juego {estado = Perdio}
 
 ganoJuego :: Juego -> Bool
+ganoJuego Juego {intentos = []} = False
 ganoJuego juego =
   let ultimoIntento = last juego.intentos
    in all (\(_, m) -> m == Correcto) (snd ultimoIntento)
@@ -99,5 +100,5 @@ obtenerPalabraSecreta :: Juego -> String
 obtenerPalabraSecreta juego = juego.palabraSecreta
 
 actualizarIntentos :: Juego -> [(String, [(Char, Match)])] -> Juego
-actualizarIntentos juego intentos = juego {intentos = intentos}
+actualizarIntentos juego intentos' = estadoJuego juego {intentos = intentos'}
 
