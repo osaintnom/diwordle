@@ -68,7 +68,7 @@ main config = do
 
         Daily (Just date) -> do
           fechaHoy <- currentDay
-          if (fechaHoy == date) then
+          if fechaHoy == date then
             do
               juegoAnterior <- cargarJuego "intentos.json" diccionario'
               case juegoAnterior of
@@ -171,6 +171,12 @@ actualizarEstado (Key key _) s =
               PalabraInvalida -> (s {estadoIntento = Just PalabraInvalida}, Continue)
               IntentoYaRealizado -> (s {estadoIntento = Just IntentoYaRealizado}, Continue)
               PalabraNoDiccionario -> (s {estadoIntento = Just PalabraNoDiccionario}, Continue)
+      
+      -- Sugerir letra
+      KChar ' ' ->  if length (entradaUsuario s) < largoPalabraSecreta (juego s) then
+                      let letraSugerida = sugerirLetra (juego s) (entradaUsuario s)
+                      in (s {entradaUsuario = entradaUsuario s <> [letraSugerida]}, Continue)
+                    else (s, Continue)
 
       -- Ingresar letra
       KChar c -> if isAlpha c then
@@ -188,7 +194,7 @@ renderJuego :: State -> String
 renderJuego s =
   let
     -- Determina el mensaje de victoria o derrota
-    mensajeGanadoPerdido = if ganoJuego (juego s) then "GANASTE!! " else "PERDISTE :( " 
+    mensajeGanadoPerdido = if ganoJuego (juego s) then "GANASTE!! " else "PERDISTE :( "
     -- Obtiene el mensaje de letras descartadas
     mensajeDescartadas = mensajeLetraDescartada (entradaUsuario s) (letrasDescartadas (obtenerIntentos (juego s)))
     -- Filtra el mensaje si está vacío
@@ -270,6 +276,14 @@ selectColor :: Match -> String
 selectColor Correcto = ansiBgGreenColor
 selectColor LugarIncorrecto = ansiBgYellowColor
 selectColor NoPertenece = ansiBgRedColor
+
+sugerirLetra :: Juego -> String -> Char
+sugerirLetra j _ = 
+  let letrasUsadas = nub (concatMap fst (obtenerIntentos j))
+      letrasRestantes = filter (`notElem` letrasUsadas) ['A' .. 'Z']
+    in case letrasRestantes of
+          [] -> ' '
+          _ -> head letrasRestantes
 
 {- ANSI ESCAPE COLORS -}
 type Color = String
