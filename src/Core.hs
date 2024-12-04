@@ -71,7 +71,6 @@ primeraAparicion letra objetivo checkeados
     extractIdx (_, _, idx) = idx
 
 
--- Reemplaza el elemento en un índice específico en una lista
 reemplazarValor :: Int -> a -> [a] -> [a]
 reemplazarValor i x xs = take i xs ++ [x] ++ drop (i + 1) xs
 

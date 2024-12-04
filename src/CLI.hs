@@ -4,6 +4,17 @@
 module CLI (main, Modo(..), Config(..), Diccionario, palabraEnDiccionario, obtenerPalabraFecha) where
 
 import Game
+    ( Juego,
+      ResultadoIntento(..),
+      obtenerIntentos,
+      iniciarJuego,
+      juegoFinalizado,
+      enviarIntento,
+      ganoJuego,
+      largoPalabraSecreta,
+      intentosRestantes,
+      obtenerPalabraSecreta,
+      actualizarIntentos )
 import Core (Match (..))
 import Data.Char (toUpper, isAlpha)
 import GHC.Generics (Generic)
@@ -11,10 +22,14 @@ import Data.Aeson (ToJSON, FromJSON, encode, decode)
 import System.Directory (doesFileExist)
 import qualified Data.ByteString.Lazy as B
 import System.IO.Error (catchIOError)
-import System.Random.Stateful
+import System.Random.Stateful ( randomRIO )
 import TinyApp.Interactive (ContinueExit (..), Event (Key), Key (..), Sandbox (..), runInteractive')
 import Data.List (nub)
 import Data.Time
+    ( LocalTime(localDay),
+      getCurrentTime,
+      getCurrentTimeZone,
+      utcToLocalTime )
 
 newtype Diccionario = Diccionario
   { palabras :: [String]

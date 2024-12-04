@@ -1,4 +1,3 @@
--- src/Game.hs
 {-# LANGUAGE OverloadedRecordDot #-}
 
 module Game
@@ -18,8 +17,6 @@ module Game
 where
 
 import Core (Match (..), match)
-import Data.Aeson (encode, decode)
-import qualified Data.ByteString.Lazy as B
 
 data EstadoJuego = Gano | Perdio | EnProceso
   deriving (Show, Eq)
@@ -29,11 +26,11 @@ data ResultadoIntento = Valido | LargoInvalido | PalabraInvalida | IntentoYaReal
 
 
 data Juego = Juego
-  { palabraSecreta :: String, -- La palabra secreta a adivinar
-    maxIntentos :: Int, -- Número máximo de intentos permitidos
-    intentos :: [(String, [(Char, Match)])], -- Lista de intentos realizados y sus matches
-    estado :: EstadoJuego, -- Indica el estado del juego
-    funcionDicc :: String -> Bool --IGNORE ESTO
+  { palabraSecreta :: String, 
+    maxIntentos :: Int, 
+    intentos :: [(String, [(Char, Match)])], 
+    estado :: EstadoJuego, 
+    enDiccionario :: String -> Bool 
   }
     
 iniciarJuego :: String -> Int -> (String -> Bool) -> Juego  
@@ -43,17 +40,17 @@ iniciarJuego secret maxInt f =
       maxIntentos = maxInt,
       intentos = [],
       estado = EnProceso,
-      funcionDicc = f
+      enDiccionario = f
     }
 
 -- | Toma un juego y un intento
---    -> Devuelve Error o Juego (actualizado)
+--    -> Devuelve (Resultado del intento, Juego actualizado)
 enviarIntento :: Juego -> String -> (ResultadoIntento, Juego)
 enviarIntento juego intento
   | not (esLargoValido juego intento) = (LargoInvalido, juego)
   | not (esPalabraValida intento) = (PalabraInvalida, juego)
   | intentoYaRealizado juego intento = (IntentoYaRealizado, juego)
-  | not (juego.funcionDicc intento) = (PalabraNoDiccionario, juego)
+  | not (juego.enDiccionario intento) = (PalabraNoDiccionario, juego)
   | otherwise = (Valido, juegoActualizado)
   where
     conIntentos = juego {intentos = juego.intentos ++ [(intento, match juego.palabraSecreta intento)]}
