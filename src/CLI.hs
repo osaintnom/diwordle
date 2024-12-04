@@ -158,7 +158,7 @@ actualizarEstado (Key key _) s =
 
       -- Ingresar letra
       KChar c -> if isAlpha c then
-                  if length (entradaUsuario s) < largoPalabraSecreta (juego s)
+                  if length (entradaUsuario s) < largoPalabraSecreta (juego s) &&  intentosRestantes (juego s) > 0
                     then (s {entradaUsuario = entradaUsuario s <> [toUpper c]}, Continue)
                   else (s, Continue)
                 else (s {estadoIntento = Just CaracterInvalido}, Continue)
@@ -172,7 +172,7 @@ renderJuego :: State -> String
 renderJuego s =
   let
     -- Determina el mensaje de victoria o derrota
-    mensajeGanadoPerdido = if ganoJuego (juego s) then "GANASTE!! " else "PERDISTE :( "
+    mensajeGanadoPerdido = if ganoJuego (juego s) then "GANASTE!! " else "PERDISTE :( " 
     -- Obtiene el mensaje de letras descartadas
     mensajeDescartadas = mensajeLetraDescartada (entradaUsuario s) (letrasDescartadas (obtenerIntentos (juego s)))
     -- Filtra el mensaje si está vacío
@@ -184,8 +184,8 @@ renderJuego s =
       <> "Letras descartadas: " <> letrasDescartadas (obtenerIntentos (juego s)) <> "\n"
       <> mensajeOut (estadoIntento s)
       <> "\n"
-      <> if juegoFinalizado (juego s)
-          then mensajeGanadoPerdido <> "Juego finalizado. La palabra es: " <> obtenerPalabraSecreta (juego s)
+      <> if juegoFinalizado (juego s) || intentosRestantes (juego s) <= 0
+          then mensajeGanadoPerdido <> "Juego finalizado. La palabra es: " <> obtenerPalabraSecreta (juego s) <> "\n" <> "Apreta `Esc` para salir."
           else " \n"
 
 {-Devuelve las letras descatadas que fuero usadas-}
@@ -238,7 +238,7 @@ showJuego :: State -> String
 showJuego s =
   let j = juego s
       largoPalabra = largoPalabraSecreta j
-   in if juegoFinalizado j
+   in if juegoFinalizado j || intentosRestantes j <= 0
         then
           concatMap showIntento (obtenerIntentos j)
             <> concatMap showVacio (replicate (intentosRestantes j) largoPalabra)
