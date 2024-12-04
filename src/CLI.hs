@@ -171,7 +171,7 @@ actualizarEstado (Key key _) s =
               PalabraInvalida -> (s {estadoIntento = Just PalabraInvalida}, Continue)
               IntentoYaRealizado -> (s {estadoIntento = Just IntentoYaRealizado}, Continue)
               PalabraNoDiccionario -> (s {estadoIntento = Just PalabraNoDiccionario}, Continue)
-      
+
       -- Sugerir letra
       KChar ' ' ->  if length (entradaUsuario s) < largoPalabraSecreta (juego s) then
                       let letraSugerida = sugerirLetra (juego s) (entradaUsuario s)
@@ -203,7 +203,8 @@ renderJuego s =
     showJuego s
       <> "\n"
       <> mensajeFiltrado
-      <> "Letras descartadas: " <> letrasDescartadas (obtenerIntentos (juego s)) <> "\n"
+      <> "Letras descartadas: " <> letrasDescartadas (obtenerIntentos (juego s)) <> "\n\n"
+      <> "Para sugerencia, presiona `Espacio`. \nPara borrar, presiona `Backspace`.\n"
       <> mensajeOut (estadoIntento s)
       <> "\n"
       <> if juegoFinalizado (juego s) || intentosRestantes (juego s) <= 0
@@ -278,12 +279,7 @@ selectColor LugarIncorrecto = ansiBgYellowColor
 selectColor NoPertenece = ansiBgRedColor
 
 sugerirLetra :: Juego -> String -> Char
-sugerirLetra j _ = 
-  let letrasUsadas = nub (concatMap fst (obtenerIntentos j))
-      letrasRestantes = filter (`notElem` letrasUsadas) ['A' .. 'Z']
-    in case letrasRestantes of
-          [] -> ' '
-          _ -> head letrasRestantes
+sugerirLetra j e = obtenerPalabraSecreta j !! length e
 
 {- ANSI ESCAPE COLORS -}
 type Color = String
