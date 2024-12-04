@@ -17,3 +17,5 @@ Si no se especifica ninguna opción, `diwordle-exe` se ejecuta como `diwordle-ex
 - `--random`: Jugar con una palabra aleatoria.
 - `--filename FILENAME`: Ruta al archivo del diccionario. Debe ser .txt.
 - `--palabra PALABRA`: Jugar con una palabra específica.
+
+- `cabal run`: Juego default daily con 5 intentos.
